@@ -3,19 +3,43 @@ from dotenv import load_dotenv
 from flask import (
     Flask, render_template, redirect, request, session, flash, url_for
 )
-from models.game import Game
-from models.user import User
+from flask_sqlalchemy import SQLAlchemy
 
 
 load_dotenv()
-game_list = []
-users = {}
 app = Flask(__name__)
-app.secret_key = str(os.getenv('FLASK_SECRET_KEY'))
+app.secret_key = str(os.getenv("FLASK_SECRET_KEY"))
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    'mysql+mysqlconnector://'
+    f'{str(os.getenv("MYSQL_USERNAME"))}:'
+    f'{str(os.getenv("MYSQL_PW"))}@'
+    f'{str(os.getenv("MYSQL_HOST"))}/gameteca'
+)
+db = SQLAlchemy(app)
+
+
+class Games(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(50), nullable=False)
+    category = db.Column(db.String(40), nullable=False)
+    console = db.Column(db.String(20), nullable=False)
+
+    def __repr__(self):
+        return f'<Name {self.name}>'
+
+
+class Users(db.Model):
+    username = db.Column(db.String(20), primary_key=True)
+    name = db.Column(db.String(20), nullable=False)
+    password = db.Column(db.String(100), nullable=False)
+
+    def __repr__(self):
+        return f'<Name {self.name}>'
 
 
 @app.route('/')
 def index():
+    game_list = Games.query.order_by(Games.id)
     return render_template('list.html', title='Games', games=game_list)
 
 
@@ -34,38 +58,16 @@ def create():
     category = request.form['category']
     console = request.form['console']
 
-    game_list.append(Game(name, category, console))
+    game = Games.query.filter_by(name=name).first()
+    if game:
+        flash('The game already exists')
+        return redirect(url_for('new'))
+
+    new_game = Games(name=name, category=category, console=console)
+    db.session.add(new_game)
+    db.session.commit()
 
     return redirect(url_for('index'))
-
-
-@app.route('/register')
-def register():
-    if 'logged_user' not in session or not session['logged_user']:
-        return render_template('register.html', title='Register User')
-
-    flash("You're already logged in")
-    return redirect(url_for('index'))
-
-
-@app.route('/save_user', methods=['POST'])
-def save_user():
-    username = request.form['username']
-    nickname = request.form['nickname']
-    password = request.form['password']
-    password2 = request.form['password2']
-
-    if password != password2:
-        flash('Passwords do not match! Try again')
-        return redirect(url_for('register'))
-    if username in users:
-        flash('This user already exists!')
-        return redirect(url_for('register'))
-
-    user = User(username, nickname, password)
-    users[user.username] = user
-
-    return redirect(url_for('login', next=url_for('index')))
 
 
 @app.route('/login')
@@ -76,17 +78,21 @@ def login():
 
 @app.route('/authenticate', methods=['POST'])
 def authenticate():
+    next = (
+        request.form['next']
+        if request.form['next'] != 'None'
+        else url_for('index')
+    )
     username = request.form['username']
     pw = request.form['password']
-    if username in users:
-        if pw == users[username].password:
-            session['logged_user'] = users[username].nickname
+    user = Users.query.filter_by(username=username).first()
+    if user:
+        if pw == user.password:
+            session['logged_user'] = user.name
             flash(f"{session['logged_user']} successfully logged in")
-            next = request.form['next']
             return redirect(next)
 
     flash("Log In Failed! Try Again")
-    next = request.form['next']
     if not next:
         return redirect(url_for('login'))
     else:
