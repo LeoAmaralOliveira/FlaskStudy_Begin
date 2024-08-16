@@ -1,40 +1,9 @@
-from pathlib import os
-from dotenv import load_dotenv
 from flask import (
-    Flask, render_template, redirect, request, session, flash, url_for
+    render_template, redirect, request, session, flash, url_for
 )
-from flask_sqlalchemy import SQLAlchemy
-
-
-load_dotenv()
-app = Flask(__name__)
-app.secret_key = str(os.getenv("FLASK_SECRET_KEY"))
-app.config['SQLALCHEMY_DATABASE_URI'] = (
-    'mysql+mysqlconnector://'
-    f'{str(os.getenv("MYSQL_USERNAME"))}:'
-    f'{str(os.getenv("MYSQL_PW"))}@'
-    f'{str(os.getenv("MYSQL_HOST"))}/gameteca'
-)
-db = SQLAlchemy(app)
-
-
-class Games(db.Model):
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(50), nullable=False)
-    category = db.Column(db.String(40), nullable=False)
-    console = db.Column(db.String(20), nullable=False)
-
-    def __repr__(self):
-        return f'<Name {self.name}>'
-
-
-class Users(db.Model):
-    username = db.Column(db.String(20), primary_key=True)
-    name = db.Column(db.String(20), nullable=False)
-    password = db.Column(db.String(100), nullable=False)
-
-    def __repr__(self):
-        return f'<Name {self.name}>'
+from app import app, db
+from models.games import Games
+from models.users import Users
 
 
 @app.route('/')
@@ -66,6 +35,46 @@ def create():
     new_game = Games(name=name, category=category, console=console)
     db.session.add(new_game)
     db.session.commit()
+
+    return redirect(url_for('index'))
+
+
+@app.route('/edit_game/<int:id>')
+def edit(id):
+    if 'logged_user' not in session or not session['logged_user']:
+        flash('You must be logged to edit items')
+        return redirect(url_for('login', next=url_for('edit', id=id)))
+
+    game = Games.query.filter_by(id=id).first()
+
+    return render_template('edit.html', title='Edit Game', game=game)
+
+
+@app.route('/update', methods=['POST'])
+def update():
+    game = Games.query.filter_by(id=request.form['id']).first()
+    game.name = request.form['name']
+    game.category = request.form['category']
+    game.console = request.form['console']
+
+    db.session.add(game)
+    db.session.commit()
+
+    return redirect(url_for('index'))
+
+
+@app.route('/delete/<int:id>')
+def delete(id):
+    if 'logged_user' not in session or not session['logged_user']:
+        flash('You must be logged to edit items')
+        return redirect(url_for('login'))
+
+    game_name = Games.query.filter_by(id=id).first().name
+
+    Games.query.filter_by(id=id).delete()
+    db.session.commit()
+
+    flash(f"The game {game_name.capitalize()} was deleted")
 
     return redirect(url_for('index'))
 
@@ -105,6 +114,3 @@ def logout():
     flash('Logout successful')
 
     return redirect(url_for('index'))
-
-
-app.run(host='0.0.0.0', port=8000, debug=True)
