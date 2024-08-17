@@ -1,5 +1,35 @@
 import os
 from app import app
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField, validators
+
+
+class GameForm(FlaskForm):
+    name = StringField(
+        'Name',
+        [validators.DataRequired(), validators.Length(min=1, max=50)]
+    )
+    category = StringField(
+        'Category',
+        [validators.DataRequired(), validators.Length(min=1, max=40)]
+    )
+    console = StringField(
+        'Console',
+        [validators.DataRequired(), validators.Length(min=1, max=20)]
+    )
+    save = SubmitField('Save')
+
+
+class UserForm(FlaskForm):
+    username = StringField(
+        'Username',
+        [validators.DataRequired(), validators.Length(min=1, max=20)]
+    )
+    password = PasswordField(
+        'Password',
+        [validators.DataRequired(), validators.Length(min=1, max=100)]
+    )
+    login = SubmitField('Login')
 
 
 def recover_image(id):
