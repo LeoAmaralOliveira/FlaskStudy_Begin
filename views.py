@@ -1,9 +1,13 @@
 from flask import (
-    render_template, redirect, request, session, flash, url_for
+    render_template, redirect, request,
+    session, flash, url_for,
+    send_from_directory
 )
 from app import app, db
 from models.games import Games
 from models.users import Users
+from helpers import recover_image, delete_image
+import time
 
 
 @app.route('/')
@@ -36,6 +40,11 @@ def create():
     db.session.add(new_game)
     db.session.commit()
 
+    file = request.files['file']
+    upload_path = app.config['UPLOAD_PATH']
+    timestamp = time.time()
+    file.save(f'{upload_path}/game_{new_game.id}_{timestamp}.jpg')
+
     return redirect(url_for('index'))
 
 
@@ -46,8 +55,11 @@ def edit(id):
         return redirect(url_for('login', next=url_for('edit', id=id)))
 
     game = Games.query.filter_by(id=id).first()
+    game_image = recover_image(id)
 
-    return render_template('edit.html', title='Edit Game', game=game)
+    return render_template(
+        'edit.html', title='Edit Game', game=game, game_image=game_image
+    )
 
 
 @app.route('/update', methods=['POST'])
@@ -59,6 +71,12 @@ def update():
 
     db.session.add(game)
     db.session.commit()
+
+    file = request.files['file']
+    upload_path = app.config['UPLOAD_PATH']
+    timestamp = time.time()
+    delete_image(game.id)
+    file.save(f'{upload_path}/game_{game.id}_{timestamp}.jpg')
 
     return redirect(url_for('index'))
 
@@ -73,6 +91,7 @@ def delete(id):
 
     Games.query.filter_by(id=id).delete()
     db.session.commit()
+    delete_image(id)
 
     flash(f"The game {game_name.capitalize()} was deleted")
 
@@ -81,6 +100,9 @@ def delete(id):
 
 @app.route('/login')
 def login():
+    if 'logged_user' in session and session['logged_user']:
+        flash(f"You're already logged on as {session['logged_user']}")
+        return redirect(url_for('index'))
     next = request.args.get('next')
     return render_template('login.html', next=next)
 
@@ -110,7 +132,15 @@ def authenticate():
 
 @app.route('/logout')
 def logout():
+    if 'logged_user' not in session or not session['logged_user']:
+        flash("You're not connected to an account")
+        return redirect(url_for('index'))
     session['logged_user'] = None
     flash('Logout successful')
 
     return redirect(url_for('index'))
+
+
+@app.route('/uploads/<filename>')
+def image(filename):
+    return send_from_directory('uploads', filename)
