@@ -2,6 +2,10 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from flask_bcrypt import Bcrypt
+from prepare_db import init_db
+
+
+init_db()
 
 
 app = Flask(__name__)

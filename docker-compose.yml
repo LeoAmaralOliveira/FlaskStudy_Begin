@@ -1,0 +1,31 @@
+version: '3.8'
+services:
+  mysql-db:
+    image: mysql/mysql-server:latest
+    container_name: gameteca-db-mysql
+    restart: always
+    environment:
+      - MYSQL_DATABASE=gameteca
+      - MYSQL_USER=admin
+      - MYSQL_PASSWORD=admin
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql-volume:/var/lib/mysql
+
+  gameteca-app:
+    build: .
+    container_name: gameteca-service
+    restart: always
+    depends_on:
+      - mysql-db
+    ports:
+      - 8000:8000
+    volumes:
+      - app-volume:/usr/src/app
+
+volumes:
+  mysql-volume:
+    driver: local
+  app-volume:
+    driver: local

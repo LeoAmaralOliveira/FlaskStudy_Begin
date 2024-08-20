@@ -1,5 +1,6 @@
 from pathlib import os as path_os
 import os
+import socket
 from dotenv import load_dotenv
 
 
@@ -11,6 +12,6 @@ SQLALCHEMY_DATABASE_URI = (
     'mysql+mysqlconnector://'
     f'{str(path_os.getenv("MYSQL_USERNAME"))}:'
     f'{str(path_os.getenv("MYSQL_PW"))}@'
-    f'{str(path_os.getenv("MYSQL_HOST"))}/gameteca'
+    f'{".".join(socket.gethostbyname(socket.gethostname()).split(".")[:-1] + ["1"])}/gameteca' # NoQa
 )
 UPLOAD_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/uploads"
