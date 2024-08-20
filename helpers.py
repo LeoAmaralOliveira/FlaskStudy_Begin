@@ -32,6 +32,27 @@ class UserForm(FlaskForm):
     login = SubmitField('Login')
 
 
+class UserRegisterForm(FlaskForm):
+    name = StringField(
+        'Name',
+        [validators.DataRequired(), validators.Length(min=1, max=20)]
+    )
+    username = StringField(
+        'Username',
+        [validators.DataRequired(), validators.Length(min=1, max=20)]
+    )
+    password = PasswordField(
+        'Password',
+        [
+            validators.DataRequired(),
+            validators.Length(min=1, max=100),
+            validators.EqualTo('confirm', message='Passwords must match')
+        ]
+    )
+    confirm = PasswordField('Repeat Password')
+    register = SubmitField('Register')
+
+
 def recover_image(id):
     for filename in os.listdir(app.config['UPLOAD_PATH']):
         if f'game_{id}' in filename:
