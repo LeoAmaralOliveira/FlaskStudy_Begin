@@ -1,8 +1,9 @@
 FROM python:3.8-slim
 ENV PYTHONUNBUFFERED=1
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY . .
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app
+COPY requirements.txt /usr/src/app
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . /usr/src/app
 EXPOSE 8000
-CMD ["python", "gameteca.py"]
+CMD ["python", "app.py"]

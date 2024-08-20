@@ -1,11 +1,48 @@
-from app import app
+from app import app, db
 from flask import (
     render_template, redirect, request,
     session, flash, url_for
 )
 from models.users import Users
 from helpers import UserForm
-from flask_bcrypt import check_password_hash
+from helpers import UserRegisterForm
+from flask_bcrypt import check_password_hash, generate_password_hash
+
+
+@app.route('/register')
+def register():
+    if 'logged_user' in session and session['logged_user']:
+        flash(f"You're already logged on as {session['logged_user']}")
+        return redirect(url_for('index'))
+    form = UserRegisterForm()
+    return render_template('register.html', form=form)
+
+
+@app.route('/register_user', methods=['POST'])
+def register_user():
+    form = UserRegisterForm(request.form)
+
+    if not form.validate_on_submit():
+        flash('Passwords must match')
+        return redirect(url_for('register'))
+
+    name = form.name.data
+    username = form.username.data
+    pw = generate_password_hash(form.password.data)
+
+    user = Users.query.filter_by(username=username).first()
+
+    if user:
+        flash("This user already exists!")
+        return redirect(url_for('register'))
+
+    new_user = Users(name=name, username=username, password=pw)
+    db.session.add(new_user)
+    db.session.commit()
+
+    flash(f"{name} created successfully!")
+
+    return redirect(url_for('login'))
 
 
 @app.route('/login')
