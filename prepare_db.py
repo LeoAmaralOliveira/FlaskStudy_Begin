@@ -9,7 +9,6 @@ load_dotenv()
 
 
 def init_db():
-    print("Connecting...")
     try:
         conn = mysql.connector.connect(
             host=".".join(socket.gethostbyname(socket.gethostname()).split(".")[:-1] + ["1"]), # NoQa
@@ -50,15 +49,12 @@ def init_db():
     for tabela_nome in TABLES:
         tabela_sql = TABLES[tabela_nome]
         try:
-            print('Creating table {}:'.format(tabela_nome), end=' ')
             cursor.execute(tabela_sql)
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
                 print('Already exists')
             else:
                 print(err.msg)
-        else:
-            print('OK')
 
     conn.commit()
 
