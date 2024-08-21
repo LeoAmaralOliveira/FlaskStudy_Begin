@@ -16,9 +16,9 @@ csrf = CSRFProtect(app)
 bcrypt = Bcrypt(app)
 
 
-from views_game import * # NoQA
-from views_user import * # NoQA
+from views.views_game import * # NoQA
+from views.views_user import * # NoQA
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000, debug=True)
+    app.run(host='0.0.0.0', port=8000)
